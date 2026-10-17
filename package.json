@@ -1,0 +1,27 @@
+{
+  "name": "gut-feel-benchmark",
+  "version": "0.1.0",
+  "description": "This benchmark scores how well and how fast models make expert-level gut-feel decisions.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:data": "tsx src/cli.ts build-data",
+    "bench": "tsx src/cli.ts run",
+    "report": "tsx src/cli.ts report",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "^4.0.29",
+    "ai": "^7.0.143",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
