@@ -61,7 +61,7 @@ Here q is the forecast, t is the truth (an outcome of 0 or 1, or an exact probab
 
 Speed enters through deadlines. At each of seven deadlines (0.25, 0.5, 1, 2, 4, 8 and 16 seconds), any answer slower than the deadline is replaced by the base rate and the pack is scored again. The result is capped at the pack's skill with no deadline, so a late answer can lower a score but never raise it. Without the cap, a forecaster worse than the base rate would move toward 0 by answering slowly. The Gut Score is the mean skill over the seven deadlines, times 100, averaged across the three headline packs. A perfect forecaster that answers in 300 ms scores 85.7, and the same forecaster answering in 3 seconds scores 42.9 because it misses four of the seven deadlines. A failed call also counts as the base rate, so errors cost skill without stopping the run.
 
-The report adds skill with no deadline, log loss, calibration error over ten bins, accuracy at 0.5, median and 95th-percentile latency, and cost per 1,000 decisions at AI Gateway's list prices. Each headline score carries a 95% interval from 1,000 paired bootstrap resamples of the items, and each leaderboard row gives the share of resamples in which the contestant beats the next one down. A gap is a ranking only when that share reaches 95%.
+The report adds skill with no deadline, log loss, calibration error over ten bins, accuracy at 0.5, median and 95th-percentile latency, and cost per 1,000 decisions at AI Gateway's list prices. Each headline score carries a 95% interval from 1,000 paired bootstrap resamples of the items, and each leaderboard row gives the share of resamples in which the contestant beats the next one down. A gap is a ranking only when that share reaches 95%. A contestant asked only part of a run is ranked in its own table on the items it answered, so the items it was never asked do not count against it.
 
 Latency is wall-clock time on the machine running the benchmark, with the network and Gateway included. Each session times five Gateway requests that do no model work and prints the median in the report as the network floor. Each contestant makes one untimed warm-up call before its timed ones, retries are off, and four requests run at once by default. For chat models the runner also records reasoning tokens and SDK warnings for every answer, so the report shows whether reasoning stayed off when the spec asked for it.
 
@@ -101,31 +101,32 @@ npm test                       # runs the offline suite with no key
 
 Each run writes to `results/<run>/`, named by date unless `--run` names it. `predictions.jsonl` holds one line per contestant and item, `report.md` holds the tables, and `summary.json` holds the same numbers for scripts. Runs resume: an item that has an answer is never sent again, and a failed item is retried on the next run. `--concurrency` sets the number of parallel requests and `--timeout` the limit per call in milliseconds.
 
-## First results
+## Results
 
-The first live run, on 17 October 2026, put 25 items from each pack to seven contestants. The headline averages poker-equity, base-rates and hn-frontpage, and the intervals are 95% paired bootstrap intervals over items.
+The full run, on 17 October 2026, put all 703 items to six contestants. The headline averages poker-equity, base-rates and hn-frontpage, the intervals are 95% paired bootstrap intervals over items, and the run's files are in `results/2026-10-17/`.
 
 | Contestant | Gut Score | 95% interval | Skill | Median latency |
 |---|---:|---:|---:|---:|
-| OpenAI Decisions API (`gpt-6-luna-decisions`) | 59.0 | 56.1 to 62.5 | 65.1 | 0.30 s |
-| Jev | 51.3 | 45.0 to 56.2 | 57.2 | 0.26 s |
-| Microsoft-Decision-1 | 37.5 | 26.4 to 47.1 | 46.8 | 0.30 s |
-| Claude Opus 5.5, reasoning off | 32.0 | 25.0 to 37.3 | 71.2 | 2.0 s |
-| Claude Opus 5.5, high reasoning | 25.7 | 18.8 to 29.4 | 69.9 | 3.1 s |
-| GPT-6.1 Sol, reasoning off | 12.4 | −11.4 to 16.4 | 66.9 | 5.7 s |
-| Gemini 3.8 Flash, reasoning off | 0.3 | −24.5 to 7.9 | 28.8 | 12.3 s |
+| OpenAI Decisions API (`gpt-6-luna-decisions`) | 61.8 | 60.2 to 63.2 | 64.7 | 0.20 s |
+| Jev | 45.6 | 41.4 to 48.8 | 51.7 | 0.26 s |
+| Microsoft-Decision-1 | 32.2 | 25.7 to 37.2 | 39.9 | 0.29 s |
+| Claude Opus 5.5, reasoning off | 30.8 | 28.5 to 33.0 | 69.3 | 1.8 s |
+| Claude Opus 5.5, high reasoning | 26.2 | 24.6 to 27.9 | 70.3 | 3.1 s |
+| GPT-6.1 Sol, reasoning off | 11.4 | 3.6 to 14.1 | 64.3 | 6.1 s |
 
-The decision models win on the clock and the chat models win on judgement. Claude Opus 5.5 with reasoning off has the highest skill in the field, 71.2, but its median answer takes 2.0 seconds, so it scores nothing at the three shortest deadlines and 32.0 overall. OpenAI's Decisions API reaches 65.1 in 0.30 seconds and leads with 59.0, and Jev is second at 51.3, ahead of Microsoft-Decision-1 in 99% of resamples. Speed sets the order.
+The decision models win on the clock and the chat models win on judgement. Claude Opus 5.5 has the highest skill in the field, 69.3 with reasoning off and 70.3 with high reasoning, but its median answer takes 1.8 to 3.1 seconds, so it scores nothing at the three shortest deadlines. OpenAI's Decisions API reaches 64.7 in 0.20 seconds and leads with 61.8, and Jev is second at 45.6. Speed sets the order.
 
-More reasoning bought no skill. With high reasoning, Opus used 141 reasoning tokens per answer instead of 36, scored 69.9 against 71.2 and slowed from 2.0 to 3.1 seconds, which cost it 6 points of Gut Score. The reasoning-off setting held for no chat model: GPT-6.1 Sol used 162 reasoning tokens per answer and Gemini 3.8 Flash 2,169, with no SDK warning. Gemini thought past the 120-second limit on 23 of 25 poker hands, and Gateway appears to bill those calls although they return nothing, since the run used $3.51 of credit and the recorded token counts explain $1.66.
+Each contestant beats the next one down in at least 99% of bootstrap resamples, except Microsoft-Decision-1 against Opus with reasoning off, at 61%. With 400 headline items per contestant, the intervals are a third to a half as wide as in the trial run of 25 items per pack that came first.
 
-The exact packs separate the field and the outcome packs barely do. Every chat model and the Decisions API scored 100.0 on base-rates, and on poker-equity the chat models that answered scored 98.6 to 99.7, against 95.8 for the Decisions API and 80.2 for Jev. On hn-frontpage no contestant passed 14.7. On heart-disease, which sits outside the headline, the Decisions API scored 6.4 while Jev scored 43.0 and Opus 68.5 to 73.1.
+High reasoning bought Opus one point of skill and cost it nearly five points of Gut Score. It used 132 reasoning tokens per answer instead of 27 and slowed from 1.8 to 3.1 seconds, and the skill gain sits inside both intervals. The reasoning-off setting held for neither chat model: Opus used 27 reasoning tokens per answer and GPT-6.1 Sol 118, with no SDK warning.
 
-Twenty-five items per pack leave wide intervals. Microsoft-Decision-1 and Opus with reasoning off are not separated, at 81% of resamples, and neither are Sol and Gemini, at 90%. GPT-6.1 Sol and Gemini 3.8 Flash with high reasoning have not run yet.
+The exact packs separate the field and the outcome packs barely do. The chat models scored 100.0 on base-rates and 97.1 to 98.9 on poker-equity, against 99.9 and 93.4 for the Decisions API, 80.3 and 76.8 for Jev, and 67.3 and 52.6 for Microsoft-Decision-1. On hn-frontpage no contestant passed 12.1. On heart-disease, outside the headline, the chat models scored 62.4 to 70.3 and the decision models 40.2 to 46.4.
+
+Gemini 3.8 Flash answered only the trial run's 100 items. It ran past the 120-second limit on 23 of 25 poker hands, and Gateway appears to bill such calls although they return nothing, so it sat out the full run. The report ranks it on its own items, where it scored 0.3 against 59.0 for the Decisions API. The full run cost $5.84 of Gateway credit, and 2 of its 4,218 calls failed.
 
 ## Status
 
-Version 0.1 has one live run, the smoke run above. The 22 tests cover the hand evaluator, the Bayes generator, the scoring and its deadline cap, the bootstrap, the chat-model adapter, the terminal input for people and a full mock run with resume.
+Version 0.1 has one live run, the full run above. The 23 tests cover the hand evaluator, the Bayes generator, the scoring and its deadline cap, the bootstrap, the chat-model adapter, the terminal input for people, partial contestants in the report and a full mock run with resume.
 
 Four gaps remain open:
 
