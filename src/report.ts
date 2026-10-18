@@ -4,7 +4,7 @@ import { readNetwork, readPredictions, type NetworkSample } from './bench.ts';
 import { makeContestant } from './contestants.ts';
 import { loadPack, PACKS } from './packs/index.ts';
 import { bootstrap, DEADLINES_MS, scoreRun, type ContestantScore, type Interval } from './score.ts';
-import type { Item } from './types.ts';
+import type { Item, Prediction } from './types.ts';
 
 interface Price {
   input: number;
@@ -72,19 +72,49 @@ export interface Summary {
     /** The share of resamples in which this contestant beats the next one down. */
     aheadOfNext: number | null;
   })[];
+  /**
+   * Contestants that answered only part of the run. Each is ranked against the
+   * full contestants on its own items, because counting the items it was never
+   * asked as base-rate answers would misstate its skill.
+   */
+  partial: { contestant: string; items: number; scores: ContestantScore[] }[];
+}
+
+const key = (p: Prediction) => `${p.pack}\u0000${p.itemId}`;
+
+/** Splits contestants into those that attempted every item in the run and those that attempted only some. */
+function coverage(predictions: Prediction[]): { complete: string[]; partial: Map<string, Set<string>> } {
+  const attempted = new Map<string, Set<string>>();
+  for (const p of predictions) {
+    if (!attempted.has(p.contestant)) attempted.set(p.contestant, new Set());
+    attempted.get(p.contestant)!.add(key(p));
+  }
+  const all = new Set(predictions.map(key));
+  const complete = [...attempted].filter(([, items]) => items.size === all.size).map(([c]) => c);
+  // With nobody complete there is nothing to rank against, so every contestant is scored together as before.
+  if (!complete.length) return { complete: [...attempted.keys()], partial: new Map() };
+  return { complete, partial: new Map([...attempted].filter(([c]) => !complete.includes(c))) };
 }
 
 export async function writeReport(runDir: string, dataDir: string, log = console.log): Promise<Summary> {
-  const predictions = readPredictions(runDir);
-  if (!predictions.length) throw new Error(`No predictions in ${runDir}. Run \`npm run bench\` first.`);
+  const all = readPredictions(runDir);
+  if (!all.length) throw new Error(`No predictions in ${runDir}. Run \`npm run bench\` first.`);
 
-  const packNames = PACKS.map((p) => p.name).filter((name) => predictions.some((p) => p.pack === name));
+  const packNames = PACKS.map((p) => p.name).filter((name) => all.some((p) => p.pack === name));
   const packs = new Map<string, Item[]>(packNames.map((name) => [name, loadPack(dataDir, name)]));
   const headline = PACKS.filter((p) => p.headline && packNames.includes(p.name)).map((p) => p.name);
   const outside = packNames.filter((name) => !headline.includes(name));
   const prices = await loadPrices(runDir);
+  const { complete, partial } = coverage(all);
+  const predictions = all.filter((p) => complete.includes(p.contestant));
   const boot = bootstrap(packs, predictions, { headline, samples: 1000, seed: 1 });
   const ranked = scoreRun(packs, predictions, { headline }).sort((a, b) => b.gutScore - a.gutScore);
+  const partialScores = [...partial].map(([contestant, items]) => ({
+    contestant,
+    items: items.size,
+    scores: scoreRun(packs, all.filter((p) => items.has(key(p)) && (p.contestant === contestant || complete.includes(p.contestant))), { headline })
+      .sort((a, b) => b.gutScore - a.gutScore),
+  }));
   const scores = ranked.map((s, i) => ({
     ...s,
     costPer1k: costPer1k(s, prices),
@@ -103,6 +133,7 @@ export async function writeReport(runDir: string, dataDir: string, log = console
     bootstrapSamples: boot.samples,
     network,
     scores,
+    partial: partialScores,
   };
   writeFileSync(join(runDir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
 
@@ -185,6 +216,7 @@ export async function writeReport(runDir: string, dataDir: string, log = console
         '',
       ];
     }),
+    ...partialSection(partialScores),
     ...runNotes(scores, network),
   ].join('\n');
   writeFileSync(join(runDir, 'report.md'), md);
@@ -197,6 +229,21 @@ export async function writeReport(runDir: string, dataDir: string, log = console
   );
   log(`\nThe report is in ${join(runDir, 'report.md')}, with summary.json beside it.`);
   return summary;
+}
+
+/** Ranks each partial contestant against the full field on the items it answered, so its skill is not diluted. */
+function partialSection(partial: Summary['partial']): string[] {
+  return partial.flatMap(({ contestant, items, scores }) => [
+    `## Partial run: \`${contestant}\``,
+    '',
+    `\`${contestant}\` was asked ${items} of the run's items and is left out of the tables above. Here every contestant is scored on those ${items} items only.`,
+    '',
+    table(
+      ['Contestant', 'Gut Score', 'Skill', 'p50 latency', 'Answered'],
+      scores.map((s) => [`\`${s.contestant}\``, pct(s.gutScore), pct(s.skill), ms(s.latencyP50), `${s.answered}/${s.n}`]),
+    ),
+    '',
+  ]);
 }
 
 /** Says what the latencies include and whether each chat model reasoned as asked. */

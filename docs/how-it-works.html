@@ -558,30 +558,29 @@ For each statement id, give the probability that it is true.
 </section>
 
 <section class="section" aria-labelledby="results">
-  <h2 id="results">First results</h2>
-  <p>The first live run, on 17 October 2026, put 25 items from each pack to seven contestants. The decision models win on the clock and the chat models win on judgement.</p>
+  <h2 id="results">Results</h2>
+  <p>The full run, on 17 October 2026, put all 703 items to six contestants. The decision models win on the clock and the chat models win on judgement.</p>
   <div class="table-wrap wide" style="max-width: 860px;">
     <table>
       <thead><tr><th>Contestant</th><th class="num">Gut Score</th><th class="num">95% interval</th><th class="num">Skill</th><th class="num">Median latency</th></tr></thead>
       <tbody>
-        <tr><td>OpenAI Decisions API</td><td class="num">59.0</td><td class="num">56.1 to 62.5</td><td class="num">65.1</td><td class="num">0.30 s</td></tr>
-        <tr><td>Jev</td><td class="num">51.3</td><td class="num">45.0 to 56.2</td><td class="num">57.2</td><td class="num">0.26 s</td></tr>
-        <tr><td>Microsoft-Decision-1</td><td class="num">37.5</td><td class="num">26.4 to 47.1</td><td class="num">46.8</td><td class="num">0.30 s</td></tr>
-        <tr><td>Claude Opus 5.5, reasoning off</td><td class="num">32.0</td><td class="num">25.0 to 37.3</td><td class="num">71.2</td><td class="num">2.0 s</td></tr>
-        <tr><td>Claude Opus 5.5, high reasoning</td><td class="num">25.7</td><td class="num">18.8 to 29.4</td><td class="num">69.9</td><td class="num">3.1 s</td></tr>
-        <tr><td>GPT-6.1 Sol, reasoning off</td><td class="num">12.4</td><td class="num">−11.4 to 16.4</td><td class="num">66.9</td><td class="num">5.7 s</td></tr>
-        <tr><td>Gemini 3.8 Flash, reasoning off</td><td class="num">0.3</td><td class="num">−24.5 to 7.9</td><td class="num">28.8</td><td class="num">12.3 s</td></tr>
+        <tr><td>OpenAI Decisions API</td><td class="num">61.8</td><td class="num">60.2 to 63.2</td><td class="num">64.7</td><td class="num">0.20 s</td></tr>
+        <tr><td>Jev</td><td class="num">45.6</td><td class="num">41.4 to 48.8</td><td class="num">51.7</td><td class="num">0.26 s</td></tr>
+        <tr><td>Microsoft-Decision-1</td><td class="num">32.2</td><td class="num">25.7 to 37.2</td><td class="num">39.9</td><td class="num">0.29 s</td></tr>
+        <tr><td>Claude Opus 5.5, reasoning off</td><td class="num">30.8</td><td class="num">28.5 to 33.0</td><td class="num">69.3</td><td class="num">1.8 s</td></tr>
+        <tr><td>Claude Opus 5.5, high reasoning</td><td class="num">26.2</td><td class="num">24.6 to 27.9</td><td class="num">70.3</td><td class="num">3.1 s</td></tr>
+        <tr><td>GPT-6.1 Sol, reasoning off</td><td class="num">11.4</td><td class="num">3.6 to 14.1</td><td class="num">64.3</td><td class="num">6.1 s</td></tr>
       </tbody>
     </table>
   </div>
-  <p>Claude Opus 5.5 with reasoning off has the highest skill in the field, 71.2, but its median answer takes 2.0 seconds, so it scores nothing at the three shortest deadlines and 32.0 overall. OpenAI's Decisions API reaches 65.1 in 0.30 seconds and leads with 59.0, and Jev is second at 51.3, ahead of Microsoft-Decision-1 in 99% of resamples.</p>
-  <p>More reasoning bought no skill. With high reasoning, Opus used 141 reasoning tokens per answer instead of 36, scored 69.9 against 71.2 and slowed from 2.0 to 3.1 seconds. The reasoning-off setting held for no chat model: GPT-6.1 Sol used 162 reasoning tokens per answer and Gemini 3.8 Flash 2,169, and Gemini thought past the 120-second limit on 23 of 25 poker hands.</p>
-  <p>The exact packs separate the field and the outcome packs barely do. Every chat model and the Decisions API scored 100.0 on the base-rate problems, while on the Hacker News pack no contestant passed a skill of 14.7.</p>
+  <p>Claude Opus 5.5 has the highest skill in the field, 69.3 with reasoning off and 70.3 with high reasoning, but its median answer takes 1.8 to 3.1 seconds, so it scores nothing at the three shortest deadlines. OpenAI's Decisions API reaches 64.7 in 0.20 seconds and leads with 61.8, and Jev is second at 45.6.</p>
+  <p>High reasoning bought Opus one point of skill and cost it nearly five points of Gut Score. The reasoning-off setting held for neither chat model, and Gemini 3.8 Flash sat out the full run after timing out on 23 of 25 poker hands in the trial run of 25 items per pack.</p>
+  <p>The exact packs separate the field and the outcome packs barely do. The chat models scored 100.0 on the base-rate problems, while on the Hacker News pack no contestant passed a skill of 12.1.</p>
 </section>
 
 <section class="section" aria-labelledby="limits">
   <h2 id="limits">Limits of version 0.1</h2>
-  <p>The first run used 25 items per pack, so its intervals are wide, and GPT-6.1 Sol and Gemini 3.8 Flash with high reasoning have not run yet. Four gaps remain in the method itself.</p>
+  <p>Gemini 3.8 Flash answered only the 100 trial-run items, and GPT-6.1 Sol and Gemini 3.8 Flash with high reasoning have not run yet. Four gaps remain in the method itself.</p>
   <ul class="gaps">
     <li>The bootstrap resamples items, so the intervals cover which items were drawn but not run-to-run variation in a model's answers or latency.</li>
     <li>The network floor shows how much of each latency is network, but latencies from two machines are still not comparable.</li>
